@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="cf_eagerx" name="dummy" type="dummy_input.py" output="screen"/>
+</launch>

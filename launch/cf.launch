@@ -1,0 +1,8 @@
+<launch>
+    <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+        <arg name="color_width" value="640" />
+        <arg name="color_height" value="480" />
+        <arg name="color_fps" value="60" />
+    </include>
+    <node pkg="cf_eagerx" name="cf" type="cf.py" output="screen"/>
+</launch>
