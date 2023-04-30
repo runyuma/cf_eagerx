@@ -3,6 +3,7 @@
 import rospy
 import time
 from std_msgs.msg import Float32MultiArray
+from std_srvs.srv import SetBool
 import cflib.crtp
 from cflib.utils import uri_helper
 from cflib.crazyflie import Crazyflie
@@ -32,6 +33,11 @@ class CrazylieInterface:
         self.lg_stab.add_variable('stabilizer.pitch', 'float')
         self.lg_stab.add_variable('stabilizer.yaw', 'float')
 
+        self.EnableControl = False
+
+        self.start = rospy.Service('/crazyflie/start', SetBool, self.start_callback)
+        self.stop = rospy.Service('/crazyflie/stop', SetBool, self.stop_callback)
+
     def main(self):
 
         with SyncCrazyflie(uri, cf=self.cf) as scf:
@@ -59,11 +65,11 @@ class CrazylieInterface:
         # Do not hijack the calling thread!
         Thread(target=self._ramp_motors).start()
     def command_callback(self, msg):
-        print("received command")
+        # print("received command")
         roll = msg.data[0]
         pitch = msg.data[1]
         yawrate = msg.data[2]
-        thrust = int(msg.data[3]/1.05)
+        thrust = int(msg.data[3]/1.05 )
         self.command = [roll, pitch, yawrate, thrust]
 
     def _ramp_motors(self):
@@ -76,12 +82,21 @@ class CrazylieInterface:
             yawrate = int(self.command[2])
             thrust = int(self.command[3])
             # print("time:",time.time(),thrust)
-            self.cf.commander.send_setpoint(roll, pitch, yawrate, thrust)
+            if self.EnableControl:
+                self.cf.commander.send_setpoint(roll, pitch, yawrate, thrust)
             self.rate.sleep()
         self.cf.commander.send_setpoint(0, 0, 0, 0)
         # Make sure that the last packet leaves before the link is closed
         # since the message queue is not flushed before closing
         time.sleep(0.1)
         self.cf.close_link()
+    def start_callback(self, msg):
+        self.EnableControl = msg.data
+        print("start",self.EnableControl)
+        return True, "start"
+    def stop_callback(self, msg):
+        self.EnableControl = msg.data
+        print("#############stop#########", self.EnableControl)
+        return True, "stop"
 cf = CrazylieInterface()
 cf.main()
